@@ -203,7 +203,7 @@ class SignalHandler:
 
 # Traceback
 def handle_exception(exc_type, exc_value, exc_traceback):
-	print("Exception:\nType: {exc_type}\nValue: {exc_value}\nTraceback: {exc_traceback}\n")
+	print(f"Exception:\nType: {exc_type}\nValue: {exc_value}\nTraceback: {exc_traceback}\n")
 	with open(env.LOG, "a") as f:
 		traceback.print_exception(
 			exc_type, exc_value, exc_traceback, file=f
@@ -262,16 +262,15 @@ if __name__ == "__main__":
 		print("-" * 80)
 		for k, v in settings_dict.items():
 			print(f"{k:<20} {str(v):<50} {type(v).__name__}")
-
+	else:
+		# catch STRG-C and signals
+		signal_handler = SignalHandler()
 	# init
 	now = datetime.datetime.now(ZoneInfo(env.TIMEZONE))
 	olddow = -1
 	sunrise = 8
 	sunset = 20
 	locationinfo = LocationInfo(env.CITY, env.COUNTRY, env.TIMEZONE, env.LATITUDE, env.ALTITUDE)
-
-	# catch STRG-C and signals
-	signal_handler = SignalHandler()
 
 	# create FIFO
 	fifo_start()
