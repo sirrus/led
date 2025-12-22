@@ -8,13 +8,10 @@ import os
 import time
 import datetime
 from zoneinfo import ZoneInfo
-import signal
-import os
-import errno
 # import math
 import traceback
-
-# Signals
+import errno
+from pathlib import Path
 import signal
 import sys
 
@@ -37,7 +34,7 @@ from astral.sun import sun
 import getopt
 
 class Settings(BaseSettings):
-	model_config = SettingsConfigDict(env_file=".env")
+	model_config = SettingsConfigDict(env_file=f"{Path( __file__ ).parent.absolute()}/.env")
 
 	# env.DEBUG mode
 	DEBUG: bool = False
@@ -242,6 +239,7 @@ if __name__ == "__main__":
 	global env, EnvironmentError, led_strip
 
 	# Load settings
+	print(f"{Path( __file__ ).parent.absolute()}")
 	env = Settings()
 
 	# get cmdline parameters
@@ -262,9 +260,10 @@ if __name__ == "__main__":
 		print("-" * 80)
 		for k, v in settings_dict.items():
 			print(f"{k:<20} {str(v):<50} {type(v).__name__}")
-	else:
-		# catch STRG-C and signals
-		signal_handler = SignalHandler()
+
+	# catch STRG-C and signals
+	signal_handler = SignalHandler()
+
 	# init
 	now = datetime.datetime.now(ZoneInfo(env.TIMEZONE))
 	olddow = -1
