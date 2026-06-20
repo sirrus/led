@@ -74,6 +74,7 @@ class Settings(BaseSettings):
 	TF_HATUID: str = ""
 	TF_LEDUID: str = ""
 	TF_AIRUID: str = ""
+	TF_TEMP_OFFSET: float = 0.0
 	TF_LUXUID: str = ""
 
 # color based on humidity
@@ -220,8 +221,9 @@ def on_connect(client, userdata, flags, reason_code, properties):
 		if env.DEBUG:
 			print("MQTT connected")
 
-		# subscribe to topics
-		#client.subscribe("raspi/led/set")
+		# Register to topic if MQTT_SWTOPIC is set
+		if env.MQTT_SWTOPIC != "":
+			client.subscribe(env.MQTT_SWTOPIC)
 	else:
 		print(f"MQTT conenction error: {reason_code}")
 
@@ -289,8 +291,12 @@ if __name__ == "__main__":
 	if env.MQTT_ENABLED:
 		# MQTT callback client
 		client = mqtt.Client(
-			callback_api_version=mqtt.CallbackAPIVersion.VERSION2
+			callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
+			clean_session=True
 		)
+
+		# MQTT auto reconnect
+		client.reconnect_delay_set(min_delay=1, max_delay=60)
 
 		# MQTT connection handler
 		client.on_connect = on_connect
@@ -304,10 +310,6 @@ if __name__ == "__main__":
 
 		# Connect to MQTT
 		client.connect(env.MQTT_BROKER, env.MQTT_PORT)
-
-		# Register to raspi/led/set if MQTT_SWTOPIC is set
-		if env.MQTT_SWTOPIC != "":
-			client.subscribe(env.MQTT_SWTOPIC)
 
 		# Start MQTT loop
 		client.loop_start()
@@ -342,7 +344,7 @@ if __name__ == "__main__":
 			# send MQTT data
 			if env.MQTT_ENABLED:
 				data = {
-					"temperature": temperature / 100.0,
+					"temperature": temperature / 100.0 + env.TF_TEMP_OFFSET,
 					"humidity": humidity / 100.0,
 					"iaq_index": (500 - iaq_index)/5,
 					# "iaq_index_accuracy": iaq_index_accuracy,
@@ -358,8 +360,8 @@ if __name__ == "__main__":
 			else:
 				# disable
 				leds(led_strip, 0, 0, 0)
-				# write to FIFO
 				log = f'{now.year}-{now.month:02}-{now.day:02} {now.hour:02}:{now.minute:02}:{now.second:02} LED strip is currently disabled'
+				# write to FIFO
 				with os.fdopen(os.open(env.FIFO, os.O_RDWR | os.O_NONBLOCK), 'w') as fd:
 					fd.write(log + '\n')
 					fd.close()
